@@ -3,6 +3,20 @@ const morgan = require('morgan')
 const cors = require('cors')
 const app = express()
 
+
+/*
+To make express show static content, the page index.html and the 
+JavaScript, etc., it fetches
+
+whenever express gets an HTTP GET request it will first check if the dist 
+directory contains a file corresponding to the request's address. If a 
+correct file is found, express will return it.
+
+Now HTTP GET requests to the address www.serversaddress.com/index.html or 
+www.serversaddress.com will show the React frontend
+*/
+app.use(express.static('dist'))
+
 app.use(cors())
 /*
 Middleware are functions that can be used for handling request and response 
