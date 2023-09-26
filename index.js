@@ -1,7 +1,9 @@
 const express = require('express')
 const morgan = require('morgan')
+const cors = require('cors')
 const app = express()
 
+app.use(cors())
 /*
 Middleware are functions that can be used for handling request and response 
 objects.
@@ -22,24 +24,9 @@ the request object as a new property body.
 app.use(express.json())
 
 morgan.token('body-content', (req, res) => JSON.stringify(req.body))
-
 app.use(morgan(
     ':method :url :status :res[content-length] - :response-time ms :body-content'
 ))
-
-const requestLogger = (request, response, next) => {
-    console.log('Method:', request.method)
-    console.log('Path:  ', request.path)
-    console.log('Body:  ', request.body)
-    console.log('---')
-
-    /* 
-    The next function yields control to the next middleware.
-    */
-    next()
-}
-
-//app.use(requestLogger)
 
 let persons = [
     { 
@@ -140,7 +127,7 @@ in the JSON format.
 */
 app.use(unknownEndpoint)
 
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
