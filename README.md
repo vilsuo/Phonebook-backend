@@ -1,3 +1,3 @@
 # Phonebook-back end
-
-See [backend](https://phonebook-backend-55dt.onrender.com)
+See [info](https://phonebook-backend-55dt.onrender.com/info) and
+[entries](https://phonebook-backend-55dt.onrender.com/api/persons)
