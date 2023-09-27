@@ -32,7 +32,11 @@ mongoose.connect(url)
 // Each key in our schema defines a property in our documents which will 
 // be cast to its associated SchemaType
 const personSchema = new mongoose.Schema({
-  name: String,
+  name: {
+    type: String,
+    minLength: 3,
+    required: true
+  },
   number: String,
 })
 

@@ -49,7 +49,6 @@ app.use(morgan(
     ':method :url :status :res[content-length] - :response-time ms :body-content'
 ))
 
-// TODO show collection size
 app.get('/info', (request, response, next) => {
     Person.estimatedDocumentCount()
         .then(count => {
@@ -60,12 +59,14 @@ app.get('/info', (request, response, next) => {
         .catch(error => next(error))
 })
 
-app.get('/api/persons', (request, response) => {
-    Person.find({}).then(notes => {
-        // Express automatically sets the Content-Type header with the 
-        // appropriate value of application/json.
-        response.json(notes)
-    })
+app.get('/api/persons', (request, response, next) => {
+    Person.find({})
+        .then(notes => {
+            // Express automatically sets the Content-Type header with 
+            // the appropriate value of application/json.
+            response.json(notes)
+        })
+        .catch(error => next(error))
 })
 
 app.get('/api/persons/:id', (req, res, next) => {
@@ -78,42 +79,28 @@ app.get('/api/persons/:id', (req, res, next) => {
             }
         })
 
-        // passes the error forward with the next function. The next function 
-        // is passed to the handler as the third parameter
+        // Passes the error forward with the next function. The next 
+        // function is passed to the handler as the third parameter
         //
-        // If next was called without a parameter, then the execution would 
-        // simply move onto the next route or middleware. If the next function
-        // is called with a parameter, then the execution will continue to 
-        // the error handler middleware.
-        .catch(error => next(error))
-
-        /*
+        // If next was called without a parameter, then the execution 
+        // would simply move onto the next route or middleware. If the 
+        // next function is called with a parameter, then the execution 
+        // will continue to the error handler middleware.
+        //
         // Given a malformed id as an argument (id that doesn't match 
         // the mongo identifier format), the findById method will throw 
         // an error causing the returned promise to be rejected
-        .catch(error => {
-            console.log(error)
-
-            // The appropriate status code for the situation is 400 Bad 
-            // Request because the situation fits the description 
-            // perfectly: The request could not be understood by the 
-            // server due to malformed syntax. The client SHOULD NOT 
-            // repeat the request without modifications.
-            res.status(400).end({ error: "malformatted id" })
-        })
-        */
+        .catch(error => next(error))
 })
 
-// TODO not check for
-// - errors in db
+// TODO check for
+// - if body contains number
 app.post('/api/persons', (req, res, next) => {
+    // Without the json-parser, the body property would be undefined. 
+    // The json-parser takes the JSON data of a request, transforms it 
+    // into a JavaScript object and then attaches it to the body property 
+    // of the request object before the route handler is called.
     const body = req.body
-
-    if (!body.name || !body.number) {
-        return res.status(400).json({
-            error : 'person must have a name and a number'
-        })
-    }
 
     const name = body.name
     const newPerson = new Person({
@@ -125,12 +112,22 @@ app.post('/api/persons', (req, res, next) => {
         .then(savedPerson => {
             res.json(savedPerson)
         })
+
+        // If we try to store an object in the database that breaks one 
+        // of the constraints, the operation will throw an exception
         .catch(error => next(error))
 })
 
-// does not update name, updates number only
+// does not update name: updates number only
 app.put('/api/persons/:id', (req, res, next) => {
     const body = req.body
+
+    /*
+    const person = {
+        name: body.name,
+        number: body.number
+    }
+    */
     // Notice that the findByIdAndUpdate method receives a regular 
     // JavaScript object as its parameter, and not a new person object 
     // created with the Person constructor function
@@ -139,8 +136,17 @@ app.put('/api/persons/:id', (req, res, next) => {
     // without the modifications. We add the optional { new: true } 
     // parameter, which will cause our event  handler to be called with 
     // the new modified document instead of the original.
+    //
+    // When using findOneAndUpdate and related methods, mongoose doesn't 
+    // automatically run validation. To trigger this, you need to pass a 
+    // configuration object. For technical reasons, this plugin requires 
+    // that you also set the context option to query.
     Person.findByIdAndUpdate(
-            req.params.id, { number : body.number }, { new: true }
+            req.params.id,
+            { number : body.number },
+            //{ name: body.name },
+            // person,
+            { new: true, runValidators: true, context: 'query' }
         ).then(updatedPerson => {
             res.json(updatedPerson)
         }).catch(error => next(error))
@@ -148,17 +154,13 @@ app.put('/api/persons/:id', (req, res, next) => {
 
 app.delete('/api/persons/:id', (request, response, next) => {
     Person.findByIdAndRemove(request.params.id)
-      .then(result => {
-        // The callback parameter could be used for checking if a resource 
-        // was actually deleted
-        response.status(204).end()
-      })
-      .catch(error => next(error))
-  })
-
-const unknownEndpoint = (request, response) => {
-    response.status(404).send({ error: 'unknown endpoint' })
-}
+        .then(result => {
+            // The callback parameter could be used for checking if a 
+            // resource was actually deleted
+            response.status(204).end()
+        })
+        .catch(error => next(error))
+})
 
 // This middleware will be used for catching requests made to non-existent 
 // routes. For these requests, the middleware will return an error message 
@@ -167,8 +169,10 @@ const unknownEndpoint = (request, response) => {
 // It's also important that the middleware for handling unsupported 
 // routes is next to the last middleware that is loaded into Express, 
 // just before the error handler.
+const unknownEndpoint = (request, response) => {
+    response.status(404).send({ error: 'unknown endpoint' })
+}
 app.use(unknownEndpoint)
-
 
 // We have written the code for the error handler among the rest of our 
 // code. This can be a reasonable solution at times, but there are cases 
@@ -181,13 +185,14 @@ const errorHandler = (error, request, response, next) => {
   
     if (error.name === 'CastError') {
         return response.status(400).send({ error: 'malformatted id' })
-    } 
+    } else if (error.name = 'ValidationError') {
+        return response.status(400).json({ error: error.message })
+    }
   
     // In all other error situations, the middleware passes the error 
     // forward to the default Express error handler
     next(error)
 }
-
 // this has to be the last loaded middleware.
 app.use(errorHandler)
 
