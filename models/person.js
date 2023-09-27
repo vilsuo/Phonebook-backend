@@ -1,13 +1,13 @@
 // import enviroment variables from .env file
 require('dotenv').config()
 
-// Document databases like Mongo are schemaless, meaning that the database 
-// itself does not care about the structure of the data that is stored in 
-// the database. It is possible to store documents with completely 
+// Document databases like Mongo are schemaless, meaning that the database
+// itself does not care about the structure of the data that is stored in
+// the database. It is possible to store documents with completely
 // different fields in the same collection.
 //
-// The idea behind Mongoose is that the data stored in the database is 
-// given a schema at the level of the application that defines the shape 
+// The idea behind Mongoose is that the data stored in the database is
+// given a schema at the level of the application that defines the shape
 // of the documents stored in any given collection.
 const mongoose = require('mongoose')
 
@@ -18,7 +18,7 @@ const url = process.env.MONGODB_URI
 console.log('connecting to', url)
 
 mongoose.connect(url)
-  .then(result => {
+  .then(() => {
     console.log('connected to MongoDB')
   })
   .catch((error) => {
@@ -26,17 +26,17 @@ mongoose.connect(url)
   })
 
 
-// Number is formed by two parts that are separated by -, the first 
+// Number is formed by two parts that are separated by -, the first
 // part has 2/3 numbers and the second part consists of numbers
 const numberValidator = value => {
   return /^\d{2,3}-\d+$/.test(value)
 }
 
-// Everything in Mongoose starts with a Schema. Each schema maps to a 
-// MongoDB collection and defines the shape of the documents within that 
+// Everything in Mongoose starts with a Schema. Each schema maps to
+// MongoDB collection and defines the shape of the documents within that
 // collection.
 //
-// Each key in our schema defines a property in our documents which will 
+// Each key in our schema defines a property in our documents which will
 // be cast to its associated SchemaType
 const personSchema = new mongoose.Schema({
   name: {
@@ -48,48 +48,48 @@ const personSchema = new mongoose.Schema({
     type: String,
     minLength: 8,
     validate: [
-      numberValidator, 
+      numberValidator,
       // supported template keywords:
       // PATH: The schema path where the error is being triggered.
-      // VALUE: The value assigned to the PATH that is triggering 
+      // VALUE: The value assigned to the PATH that is triggering
       // the error.
       'validation of `{PATH}` failed with value `{VALUE}`'
-      ]
+    ]
   }
 })
 
-// One way to format the objects returned by Mongoose is to modify the 
-// toJSON method of the schema, which is used on all instances of the 
+// One way to format the objects returned by Mongoose is to modify the
+// toJSON method of the schema, which is used on all instances of the
 // models produced with that schema.
-// 
-// To modify the method we need to change the configurable options of the 
+//
+// To modify the method we need to change the configurable options of the
 // schema, options can be changed using the set method of the schema
 personSchema.set('toJSON', {
   transform: (document, returnedObject) => {
-    // The _id property of Mongoose is an object. Transform it into a 
+    // The _id property of Mongoose is an object. Transform it into a
     // string just to be safe
     returnedObject.id = returnedObject._id.toString()
     delete returnedObject._id
 
-    // We don't want to return the mongo versioning field __v to the 
+    // We don't want to return the mongo versioning field __v to the
     // frontend
     delete returnedObject.__v
   }
 })
 
-// A model is a class with which we construct document. Instances of 
+// A model is a class with which we construct document. Instances of
 // Models are documents
 //
-// In the model definition, the first parameter is the singular name of 
-// the model. The name of the collection will be the lowercase in plural 
+// In the model definition, the first parameter is the singular name of
+// the model. The name of the collection will be the lowercase in plural
 // notes
 
-// Defining Node modules differs slightly from the way of defining ES6 
+// Defining Node modules differs slightly from the way of defining ES6
 // modules
 
-// The public interface of the module is defined by setting a value to 
-// the module.exports variable. We will set the value to be the Note 
-// model. The other things defined inside of the module, like the 
-// variables mongoose and url will not be accessible or visible to users 
+// The public interface of the module is defined by setting a value to
+// the module.exports variable. We will set the value to be the Note
+// model. The other things defined inside of the module, like the
+// variables mongoose and url will not be accessible or visible to users
 // of the module.
 module.exports = mongoose.model('Person', personSchema)
