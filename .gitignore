@@ -1,1 +1,4 @@
 node_modules/
+
+# do not include environment variables defined in .env file
+.env

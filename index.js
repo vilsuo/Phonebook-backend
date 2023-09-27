@@ -1,8 +1,23 @@
+// The environment variables defined in the .env file can be taken into 
+// use with the expression
+require('dotenv').config()
+
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
 const app = express()
 
+const Person = require('./models/person')
+
+// Middleware are functions that can be used for handling request and response 
+// objects. They are called in the order that they're taken into use with
+// the express server object's use method
+// 
+// Middleware functions have to be taken into use before routes if we want 
+// them to be executed before the route event handlers are called. There 
+// are also situations where we want to define middleware functions after 
+// routes. In practice, this means that we are defining middleware functions 
+// that are only called if no route handles the HTTP request.
 
 /*
 To make express show static content, the page index.html and the 
@@ -18,19 +33,8 @@ www.serversaddress.com will show the React frontend
 app.use(express.static('dist'))
 
 app.use(cors())
+
 /*
-Middleware are functions that can be used for handling request and response 
-objects.
-
-Middleware functions are called in the order that they're taken into use 
-with the express server object's use method
-
-Middleware functions have to be taken into use before routes if we want 
-them to be executed before the route event handlers are called. There 
-are also situations where we want to define middleware functions after 
-routes. In practice, this means that we are defining middleware functions 
-that are only called if no route handles the HTTP request.
-
 The json-parser takes the raw data from the requests that are stored in 
 the request object, parses it into a JavaScript object and assigns it to 
 the request object as a new property body.
@@ -80,22 +84,23 @@ app.get('/info', (request, response) => {
 })
 
 app.get('/api/persons', (request, response) => {
-    response.json(persons)
+    Person.find({}).then(notes => {
+        // Express automatically sets the Content-Type header with the 
+        // appropriate value of application/json.
+        response.json(notes)
+    })
 })
 
+// TODO how to hande error?
 app.get('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id)
-
-    const person = persons.find(person => person.id === id)
-    if (person) {
+    Person.findById(req.params.id).then(person => {
         res.json(person)
-    } else {
-        res.status(400).json({
-            error : `person with id ${id} does not exists`
-        })
-    }
+    })
 })
 
+// TODO not check for
+// - dublicate names
+// - errors in db
 app.post('/api/persons', (req, res) => {
     const body = req.body
 
@@ -112,15 +117,15 @@ app.post('/api/persons', (req, res) => {
         })
     }
 
-    const newPerson = {
-        id: generateRandomId(),
+    const newPerson = new Person({
         name: name,
         number: body.number
-    }
+    })
 
-    persons = persons.concat(newPerson)
-
-    res.send(newPerson)
+    newPerson.save()
+        .then(savedPerson => {
+            res.json(savedPerson)
+        })
 })
 
 app.delete('/api/persons/:id', (req, res) => {
@@ -134,14 +139,12 @@ const unknownEndpoint = (request, response) => {
     response.status(404).send({ error: 'unknown endpoint' })
 }
 
-/*
-This middleware will be used for catching requests made to non-existent 
-routes. For these requests, the middleware will return an error message 
-in the JSON format.
-*/
+// This middleware will be used for catching requests made to non-existent 
+// routes. For these requests, the middleware will return an error message 
+// in the JSON format.
 app.use(unknownEndpoint)
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
