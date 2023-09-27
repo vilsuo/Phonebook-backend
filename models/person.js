@@ -25,6 +25,13 @@ mongoose.connect(url)
     console.log('error connecting to MongoDB:', error.message)
   })
 
+
+// Number is formed by two parts that are separated by -, the first 
+// part has 2/3 numbers and the second part consists of numbers
+const numberValidator = value => {
+  return /^\d{2,3}-\d+$/.test(value)
+}
+
 // Everything in Mongoose starts with a Schema. Each schema maps to a 
 // MongoDB collection and defines the shape of the documents within that 
 // collection.
@@ -37,7 +44,18 @@ const personSchema = new mongoose.Schema({
     minLength: 3,
     required: true
   },
-  number: String,
+  number: {
+    type: String,
+    minLength: 8,
+    validate: [
+      numberValidator, 
+      // supported template keywords:
+      // PATH: The schema path where the error is being triggered.
+      // VALUE: The value assigned to the PATH that is triggering 
+      // the error.
+      'validation of `{PATH}` failed with value `{VALUE}`'
+      ]
+  }
 })
 
 // One way to format the objects returned by Mongoose is to modify the 
