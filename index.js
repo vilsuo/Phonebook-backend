@@ -50,10 +50,14 @@ app.use(morgan(
 ))
 
 // TODO show collection size
-app.get('/info', (request, response) => {
-    //const info = `Phonebook has info for ${persons.length} people`
-    const date = Date()
-    response.send(`${info}<br/>${date}`)
+app.get('/info', (request, response, next) => {
+    Person.estimatedDocumentCount()
+        .then(count => {
+            const info = `Phonebook has info for ${count} people`
+            const date = Date()
+            response.send(`${info}<br/>${date}`)
+        })
+        .catch(error => next(error))
 })
 
 app.get('/api/persons', (request, response) => {
@@ -101,9 +105,8 @@ app.get('/api/persons/:id', (req, res, next) => {
 })
 
 // TODO not check for
-// - dublicate names
 // - errors in db
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
     const body = req.body
 
     if (!body.name || !body.number) {
@@ -113,14 +116,6 @@ app.post('/api/persons', (req, res) => {
     }
 
     const name = body.name
-    /*
-    if (nameExists(name)) {
-        return res.status(400).json({
-            error : `person with name ${name} already exists`
-        })
-    }
-    */
-
     const newPerson = new Person({
         name: name,
         number: body.number
@@ -130,6 +125,25 @@ app.post('/api/persons', (req, res) => {
         .then(savedPerson => {
             res.json(savedPerson)
         })
+        .catch(error => next(error))
+})
+
+// does not update name, updates number only
+app.put('/api/persons/:id', (req, res, next) => {
+    const body = req.body
+    // Notice that the findByIdAndUpdate method receives a regular 
+    // JavaScript object as its parameter, and not a new person object 
+    // created with the Person constructor function
+    //
+    // By default, the event handler receives the original document 
+    // without the modifications. We add the optional { new: true } 
+    // parameter, which will cause our event  handler to be called with 
+    // the new modified document instead of the original.
+    Person.findByIdAndUpdate(
+            req.params.id, { number : body.number }, { new: true }
+        ).then(updatedPerson => {
+            res.json(updatedPerson)
+        }).catch(error => next(error))
 })
 
 app.delete('/api/persons/:id', (request, response, next) => {

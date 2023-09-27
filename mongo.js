@@ -26,6 +26,16 @@ const getPersonString = person =>
     `${person.name} number ${person.number}`
 
 if (args.length === 2) {
+    /*
+    Person.estimatedDocumentCount()
+        .then(count => {
+            console.log('count', count)
+        })
+        .catch(error => {
+            console.log(error)
+        })
+    */
+
     Person.find({}).then(result => {
         console.log('phonebook:')
         result.forEach(person => {
